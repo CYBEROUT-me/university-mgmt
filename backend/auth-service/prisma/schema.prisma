@@ -1,0 +1,98 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  STUDENT
+  TEACHER
+  ADMIN
+  RECTOR
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  password_hash String
+  full_name     String
+  role          Role      @default(STUDENT)
+  department_id String?
+  department    Department? @relation(fields: [department_id], references: [id])
+  grades        Grade[]
+  enrollments   Enrollment[]
+  notifications Notification[]
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+
+  @@index([email])
+}
+
+model Department {
+  id         String   @id @default(uuid())
+  name       String
+  dean       String
+  users      User[]
+  courses    Course[]
+  created_at DateTime @default(now())
+}
+
+model Course {
+  id            String    @id @default(uuid())
+  title         String
+  credits       Int
+  department_id String
+  teacher_id    String
+  department    Department  @relation(fields: [department_id], references: [id])
+  enrollments   Enrollment[]
+  grades        Grade[]
+  schedule      Schedule[]
+  created_at    DateTime  @default(now())
+}
+
+model Enrollment {
+  id          String   @id @default(uuid())
+  student_id  String
+  course_id   String
+  status      String   @default("active")
+  enrolled_at DateTime @default(now())
+  student     User     @relation(fields: [student_id], references: [id])
+  course      Course   @relation(fields: [course_id], references: [id])
+
+  @@unique([student_id, course_id])
+}
+
+model Grade {
+  id         String   @id @default(uuid())
+  student_id String
+  course_id  String
+  score      Decimal  @db.Decimal(5, 2)
+  graded_at  DateTime @default(now())
+  student    User     @relation(fields: [student_id], references: [id])
+  course     Course   @relation(fields: [course_id], references: [id])
+
+  @@index([student_id, course_id])
+}
+
+model Schedule {
+  id         String   @id @default(uuid())
+  course_id  String
+  weekday    String
+  start_time String
+  end_time   String
+  room       String
+  course     Course   @relation(fields: [course_id], references: [id])
+}
+
+model Notification {
+  id      String   @id @default(uuid())
+  user_id String
+  type    String
+  message String
+  is_read Boolean  @default(false)
+  sent_at DateTime @default(now())
+  user    User     @relation(fields: [user_id], references: [id])
+}

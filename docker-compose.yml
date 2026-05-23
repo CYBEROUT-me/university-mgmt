@@ -1,0 +1,71 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: university_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  auth-service:
+    build: ./backend/auth-service
+    ports:
+      - "3001:3001"
+    environment:
+      DATABASE_URL: postgresql://admin:password@postgres:5432/university_db
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: dev-secret-key
+      JWT_REFRESH_SECRET: dev-refresh-secret
+    depends_on:
+      - postgres
+      - redis
+
+  academic-service:
+    build: ./backend/academic-service
+    ports:
+      - "3002:3002"
+    environment:
+      DATABASE_URL: postgresql://admin:password@postgres:5432/university_db
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      - postgres
+      - redis
+
+  user-service:
+    build: ./backend/user-service
+    ports:
+      - "3003:3003"
+    environment:
+      DATABASE_URL: postgresql://admin:password@postgres:5432/university_db
+    depends_on:
+      - postgres
+
+  notify-service:
+    build: ./backend/notify-service
+    ports:
+      - "3004:3004"
+    environment:
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      - redis
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:5173"
+    depends_on:
+      - auth-service
+      - academic-service
+
+volumes:
+  pgdata:

@@ -1,0 +1,22 @@
+import axios from 'axios';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+const client = axios.create({ baseURL: API_URL });
+
+client.interceptors.request.use(config => {
+  const token = localStorage.getItem('token');
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+
+export const authService = {
+  login: async (email: string, password: string) => {
+    const { data } = await client.post('/api/auth/login', { email, password });
+    return data;
+  },
+  logout: async () => {
+    await client.post('/api/auth/logout');
+    localStorage.removeItem('token');
+  },
+};
